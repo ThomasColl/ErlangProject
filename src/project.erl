@@ -13,14 +13,15 @@
 -export([start/0]).
 
 start() ->
-  Input = "((2+3)-1)",
+  Input = "((234+3)-1)",
 %%  {ok, [Input]} = io:fread('Please input your mathmatic equation: ', "~s"),
-  evaluator(parse(tokenise(Input), [], [])).
+  evaluator(parser(tokenise(Input), [], [])).
+%%  evaluator(tokenise(Input)).
 
 tokenise([$(|Tail]) ->
-  [{s, "l"}|tokenise(Tail)];
+  [{s, lb}|tokenise(Tail)];
 tokenise([$)|Tail]) ->
-  [{s, "r"}|tokenise(Tail)];
+  [{s, rb}|tokenise(Tail)];
 tokenise([$+|Tail]) ->
   [{o, plus}|tokenise(Tail)];
 tokenise([$-|Tail]) ->
@@ -30,47 +31,31 @@ tokenise([$*|Tail]) ->
 tokenise([$/|Tail]) ->
   [{o, divide}|tokenise(Tail)];
 tokenise([Head|Tail]) ->
-  [{n, Head}|tokenise(Tail)];
+  [String, Number] = get_number([Head|Tail],0),
+  [{n, Number}|tokenise(String)];
 tokenise([]) -> [].
 
-parse([{$n, Value} | Remain], Stack, RPN) ->
-  parse(Remain, Stack, [Value|RPN]);
-parse([{$o, Value} | Remain], Stack, RPN) ->
-  parse(Remain, [Value|Stack], RPN);
-parse([{$s, Value} | Remain], Stack, RPN) ->
-  parse(Remain, [Value|Stack], RPN);
-parse([{$s, $r} | Remain], [Head|Tail], RPN) ->
-  parse(Remain, pop(Tail), [Head|RPN]);
-parse([], [Head|Tail], RPN) ->
-  parse([], Tail, [Head|RPN]);
-parse([], [], RPN) ->
-  evaluator(RPN).
+get_number([], Num) -> Num;
+get_number([Head|Tail], Num) when Head >= 48, Head < 58 -> get_number(Tail, (Num*10)+(Head-$0));
+get_number([Head|Tail], Num) -> [[Head|Tail], Num].
 
-pop([_|Tail]) ->
-  pop(Tail);
-pop([$l|Tail]) ->
+parser([], _, RPN_String) ->
+  RPN_String;
+parser([{s, lb}|Tail], Stack, RPN_String) ->
+  parser(Tail, [lb|Stack], RPN_String);
+parser([{s, rb}|Tail], Stack, RPN_String) ->
+  [Operators, New_Stack] = pop(Stack),
+  parser(Tail, New_Stack, [Operators|RPN_String]);
+parser([{o, Value}|Tail], Stack, RPN_String) ->
+  parser(Tail, [Value|Stack], RPN_String);
+parser([{n, Value}|Tail], Stack, RPN_String) ->
+  parser(Tail, Stack, [Value|RPN_String]).
+
+pop([Head|Tail]) when Head /= rb->
+  [Head, pop(Tail)];
+pop([_|Tail])->
   [Tail].
-%%parse([{$n, Char}|Stack], RPN)->
-%%  parse(Stack, [Char|RPN]);
-%%parse([{$o, Char}|Stack], RPN) ->
-%%    Rhs = hd(RPN),
-%%    Lhs = hd(tl(RPN)),
-%%    Res = apply(op(Char), [Lhs, Rhs]),
-%%    parse(Stack, [Res|tl(tl(RPN))]);
-%%parse([], RPN) -> RPN.
-%%%%  parser(TokenisedList, []).
-%%
-%%op("+") -> fun(L,R) -> L+R end;
-%%op("*") -> fun(L,R) -> L*R end.
-%%
-%%is_op(X) -> X == "+" orelse X == "*".
 
-
-%%parser([{Symbol, Value}|Tail], Evaluation) ->
-%%  parser(Tail, Evaluation);
-%%parser(Evaluation) ->
-%%  evaluator(Evaluation).
-%%
 evaluator(ParsedInput) ->
   io:format('After careful and ingenius consideration I have concluded:\n'),
   io:fwrite("~w",[ParsedInput]).
