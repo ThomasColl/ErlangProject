@@ -33,14 +33,12 @@ get_number([Head|Tail], Num) -> [[Head|Tail], Num].
 parser([], _, RPN_String) -> reverse(RPN_String);
 parser([{s, lb}|Tail], Stack, RPN_String) -> parser(Tail, [lb|Stack], RPN_String);
 parser([{s, rb}|Tail], Stack, RPN_String) -> {Operators, New_Stack} = pop(Stack),
-  parser(Tail, New_Stack, [Operators|RPN_String]);
-%%parser([{o, um}|Tail], Stack, RPN_String) -> parser(Tail, Stack, [um|RPN_String); Unirary operator didnt get done
+  parser(Tail, New_Stack, Operators++RPN_String);
 parser([{o, Value}|Tail], Stack, RPN_String) -> parser(Tail, [Value|Stack], RPN_String);
 parser([{n, Value}|Tail], Stack, RPN_String) -> parser(Tail, Stack, [Value|RPN_String]).
 
-pop([]) -> [];
-pop([lb|Tail]) -> [Tail];
-pop([Head|Tail])-> {Head, pop(Tail)}.
+pop([Op, lb, um | Tail]) -> {[um, Op], Tail};
+pop([Op, lb | Tail]) -> {[Op], Tail}.
 
 reverse(L) -> reverse(L,[]). % use an accumulator to create a tail recursive function
 reverse([],R) -> R;
@@ -51,7 +49,7 @@ evaluator([First|[Second | [plus | Rest]]]) -> evaluator([First+Second | Rest]);
 evaluator([First|[Second | [minus | Rest]]]) ->evaluator([First-Second | Rest]);
 evaluator([First|[Second | [multiply | Rest]]]) ->evaluator([First*Second | Rest]);
 evaluator([First|[Second | [divide | Rest]]])->evaluator([First/Second | Rest]);
-evaluator([um, Second | Rest]) ->evaluator([-Second | Rest]).
+evaluator([First, um | Rest]) ->evaluator([-First | Rest]).
 
 output(Output) ->
   io:format('After careful and ingenius consideration I have concluded:\n'),
